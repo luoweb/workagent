@@ -1,0 +1,110 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-go:
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+        include:
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-latest
+          - goos: linux
+            goarch: arm64
+            runner: ubuntu-latest
+          - goos: darwin
+            goarch: amd64
+            runner: macos-latest
+          - goos: darwin
+            goarch: arm64
+            runner: macos-latest
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          ext=""
+          if [[ "$GOOS" == "windows" ]]; then
+            ext=".exe"
+          fi
+          go build -ldflags="-s -w" -o git-proxy-${GOOS}-${GOARCH}${ext} ./cmd/proxy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: git-proxy-go-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            git-proxy-*
+            config.yaml
+            README.md
+          retention-days: 5
+
+  build-release:
+    needs: build-go
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release
+        run: |
+          mkdir -p release
+          cd artifacts
+          for dir in */; do
+            name=$(basename "$dir")
+            if [[ "$name" == *"windows"* ]]; then
+              ext=".zip"
+            else
+              ext=".tar.gz"
+            fi
+            cd "$dir"
+            if [[ "$ext" == ".zip" ]]; then
+              zip -r "../release/git-proxy-${name#git-proxy-go-}${ext}" .
+            else
+              tar -czf "../release/git-proxy-${name#git-proxy-go-}${ext}" .
+            fi
+            cd ..
+          done
+          ls -la ../release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
