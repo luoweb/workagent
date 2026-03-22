@@ -193,7 +193,7 @@ func (p *GitProxy) Start() error {
 
 	// Start HTTP server
 	if p.config.Server.HTTPPort > 0 {
-		if err p.startHTTPServer(); err != nil {
+		if err := p.startHTTPServer(); err != nil {
 			return fmt.Errorf("start HTTP server: %w", err)
 		}
 	}
