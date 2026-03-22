@@ -1,0 +1,49 @@
+internal/config/config_test.go
+  2e02d399200fd354 1-142
+internal/middleware/middleware_test.go
+  2e02d399200fd354 1-104
+internal/ssh/ssh.go
+  2e02d399200fd354 1-142
+README.md
+  2e02d399200fd354 3-6,15-18,22-25,56-67,70,74,77-80,83,90,94-98,103-104,110-117,123-136,138-139,146-160,163,166-167,169-193,195-203,206-217,219-228,231-233,235
+internal/proxy/proxy.go
+  2e02d399200fd354 1-300
+Dockerfile
+  2e02d399200fd354 1-51
+nginx.conf
+  2e02d399200fd354 1-29
+internal/middleware/middleware.go
+  2e02d399200fd354 1-58
+cmd/proxy/main.go
+  2e02d399200fd354 11-14,17-20,22-24,27,29-30,33-36,40,42,44-46,49-53,59-60,62-63
+internal/config/config.go
+  2e02d399200fd354 1-118
+CONTRIBUTING.md
+  2e02d399200fd354 1-200
+docker-compose.yaml
+  2e02d399200fd354 1-55
+internal/logger/logger_test.go
+  2e02d399200fd354 1-96
+internal/logger/logger.go
+  2e02d399200fd354 1-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "29274b5c7de1a03ad098e8303139fbc4d03ff81c",
+  "prompts": {
+    "2e02d399200fd354": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_2e99666e0ffeNcAn6O6mRvggZD",
+        "model": "opencode/big-pickle"
+      },
+      "human_author": "robin <luoweb@users.noreply.github.com>",
+      "messages": [],
+      "total_additions": 1561,
+      "total_deletions": 587,
+      "accepted_lines": 1559,
+      "overriden_lines": 0
+    }
+  }
+}
