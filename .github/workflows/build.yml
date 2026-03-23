@@ -110,35 +110,35 @@ jobs:
         with:
           path: artifacts
 
-      - name: Prepare release package
-        run: |
-          mkdir -p release
-          cd artifacts
+      # - name: Prepare release package
+      #   run: |
+      #     mkdir -p release
+      #     cd artifacts
           
-          for dir in */; do
-            name=$(basename "$dir")
-            os_arch="${name#${{ env.BIN_NAME }}-}"
+      #     for dir in */; do
+      #       name=$(basename "$dir")
+      #       os_arch="${name#${{ env.BIN_NAME }}-}"
             
-            cd "$dir"
+      #       cd "$dir"
             
-            if [[ "$name" == *"windows"* ]]; then
-              zip -r "../release/${{ env.BIN_NAME }}-${os_arch}.zip" .
-            else
-              tar -czf "../release/${{ env.BIN_NAME }}-${os_arch}.tar.gz" .
-            fi
+      #       if [[ "$name" == *"windows"* ]]; then
+      #         zip -r "../release/${{ env.BIN_NAME }}-${os_arch}.zip" .
+      #       else
+      #         tar -czf "../release/${{ env.BIN_NAME }}-${os_arch}.tar.gz" .
+      #       fi
             
-            cd ..
-          done
+      #       cd ..
+      #     done
           
-          echo "=== Release artifacts ===" 
-          ls -la ../release/
+      #     echo "=== Release artifacts ===" 
+      #     ls -la ../release/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*
+          files: artifacts/*
           draft: false
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          # prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
