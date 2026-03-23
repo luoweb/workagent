@@ -8,14 +8,21 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: false
+
+env:
+  GO_VERSION: '1.22'
+  MAIN_PACKAGE: './cmd/proxy'
+  BIN_NAME: 'git-proxy'
 
 jobs:
   build-go:
     strategy:
       fail-fast: false
       matrix:
-        goos: [linux, darwin]
-        goarch: [amd64, arm64]
         include:
           - goos: linux
             goarch: amd64
@@ -29,6 +36,9 @@ jobs:
           - goos: darwin
             goarch: arm64
             runner: macos-latest
+          - goos: windows
+            goarch: amd64
+            runner: windows-latest
 
     runs-on: ${{ matrix.runner }}
 
@@ -39,76 +49,92 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Get dependencies
-        run: |
-          rm -f go.sum
-          go clean -modcache
-          go mod download
-          go mod tidy
+        run: go mod download
 
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
           ext=""
           if [[ "$GOOS" == "windows" ]]; then
             ext=".exe"
           fi
-          go build -ldflags="-s -w" -o git-proxy-${GOOS}-${GOARCH}${ext} ./cmd/proxy
+          output_name="$BIN_NAME-${GOOS}-${GOARCH}${ext}"
+          go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o "$output_name" ${{ env.MAIN_PACKAGE }}
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          ext=""
+          if [[ "${{ matrix.goos }}" == "windows" ]]; then
+            ext=".exe"
+          fi
+          filename="$BIN_NAME-${{ matrix.goos }}-${{ matrix.goarch }}${ext}"
+          sha256sum "$filename" > "${filename}.sha256sum"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: git-proxy-go-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: ${{ env.BIN_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            git-proxy-*
+            ${{ env.BIN_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}*
             config.yaml
             README.md
-          retention-days: 5
+          retention-days: 30
 
-  build-release:
+  release:
     needs: build-go
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Prepare release
+      - name: Prepare release package
         run: |
           mkdir -p release
           cd artifacts
+          
           for dir in */; do
             name=$(basename "$dir")
-            if [[ "$name" == *"windows"* ]]; then
-              ext=".zip"
-            else
-              ext=".tar.gz"
-            fi
+            os_arch="${name#${{ env.BIN_NAME }}-}"
+            
             cd "$dir"
-            if [[ "$ext" == ".zip" ]]; then
-              zip -r "../release/git-proxy-${name#git-proxy-go-}${ext}" .
+            
+            if [[ "$name" == *"windows"* ]]; then
+              zip -r "../release/${{ env.BIN_NAME }}-${os_arch}.zip" .
             else
-              tar -czf "../release/git-proxy-${name#git-proxy-go-}${ext}" .
+              tar -czf "../release/${{ env.BIN_NAME }}-${os_arch}.tar.gz" .
             fi
+            
             cd ..
           done
+          
+          echo "=== Release artifacts ===" 
           ls -la ../release/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: release/*
-          draft: true
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
