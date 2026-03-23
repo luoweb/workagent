@@ -105,42 +105,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        # Download the .vsix artifacts
+      - uses: actions/download-artifact@v7
         with:
+          pattern: "git-proxy-*"
           path: artifacts
+          merge-multiple: true
 
-      # - name: Prepare release package
-      #   run: |
-      #     mkdir -p release
-      #     cd artifacts
-          
-      #     for dir in */; do
-      #       name=$(basename "$dir")
-      #       os_arch="${name#${{ env.BIN_NAME }}-}"
-            
-      #       cd "$dir"
-            
-      #       if [[ "$name" == *"windows"* ]]; then
-      #         zip -r "../release/${{ env.BIN_NAME }}-${os_arch}.zip" .
-      #       else
-      #         tar -czf "../release/${{ env.BIN_NAME }}-${os_arch}.tar.gz" .
-      #       fi
-            
-      #       cd ..
-      #     done
-          
-      #     echo "=== Release artifacts ===" 
-      #     ls -la ../release/
-
-      - name: Create Release
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          draft: false
-          # prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+          files: |
+            artifacts/git-proxy-*
+          token: ${{ secrets.CI_GITHUB_TOKEN }}
+          repository: luoweb/gitproxy
+          prerelease: true
