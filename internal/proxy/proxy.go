@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
