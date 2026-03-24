@@ -44,9 +44,9 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        architecture:
-          - x64
-          - arm64
+        # architecture:
+        #   - x64
+        #   - arm64
         exclude:
           - os: windows-latest
             architecture: arm64
@@ -58,7 +58,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-        architecture: ${{ matrix.architecture || 'x64' }}
+        # architecture: ${{ matrix.architecture || 'x64' }}
     
     - name: Install dependencies
       run: |
@@ -69,20 +69,31 @@ jobs:
     
     - name: Build with PyInstaller
       run: |
-        $arch = "${{ matrix.architecture }}"
+        # Get architecture
         if ("${{ matrix.os }}" -eq "windows-latest") {
-          pyinstaller --onefile --windowed --name git-agent-windows-$arch main.py
-        } elseif ("${{ matrix.os }}" -eq "macos-latest") {
-          pyinstaller --onefile --windowed --name git-agent-macos-$arch main.py
+          $arch = $env:PROCESSOR_ARCHITECTURE
         } else {
-          pyinstaller --onefile --name git-agent-linux-$arch main.py
+          $arch = (uname -m)
+        }
+        # Normalize architecture names
+        if ($arch -like "*64*" -and $arch -notlike "*arm*" -and $arch -notlike "*aarch64*") {
+          $arch = "x64"
+        } elseif ($arch -like "*arm*" -or $arch -like "*aarch64*") {
+          $arch = "arm64"
+        }
+        if ("${{ matrix.os }}" -eq "windows-latest") {
+          pyinstaller --onefile --windowed --name git-proxy-windows-$arch main.py
+        } elseif ("${{ matrix.os }}" -eq "macos-latest") {
+          pyinstaller --onefile --windowed --name git-proxy-macos-$arch main.py
+        } else {
+          pyinstaller --onefile --name git-proxy-linux-$arch main.py
         }
       shell: pwsh
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: git-agent-${{ matrix.os }}-${{ matrix.architecture }}
+        name: git-proxy-${{ matrix.os }}
         path: dist/
         if-no-files-found: error
 
