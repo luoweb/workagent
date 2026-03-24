@@ -104,19 +104,35 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: artifacts
+    # - name: Download artifacts
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     path: artifacts
 
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+    # - name: Create Release
+    #   id: create_release
+    #   uses: softprops/action-gh-release@v2
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+    #   with:
+    #     tag_name: v${{ github.run_number }}
+    #     name: Release v${{ github.run_number }}
+    #     draft: false
+    #     prerelease: false
+    #     files: artifacts/**/*
+
+    - uses: actions/download-artifact@v7
       with:
-        tag_name: v${{ github.run_number }}
-        name: Release v${{ github.run_number }}
-        draft: false
+        pattern: "git-agent-*"
+        path: artifacts
+        merge-multiple: true
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        files: |
+          artifacts/git-agent-*
+        token: ${{ secrets.CI_GITHUB_TOKEN }}
+        repository: luoweb/gitagent
         prerelease: false
-        files: artifacts/**/*
