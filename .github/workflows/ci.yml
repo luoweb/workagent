@@ -45,7 +45,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         architecture:
-          - amd64
+          - x64
           - arm64
         exclude:
           - os: windows-latest
